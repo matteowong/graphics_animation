@@ -85,7 +85,7 @@ void first_pass() {
   for (i=0;i<lastop;i++) {
 
     if (op[i].opcode==FRAMES) {
-      num_frames==op[i].op.frames.num_frames;
+      num_frames=op[i].op.frames.num_frames;
     } else if (op[i].opcode==BASENAME) {
       strcpy(name,op[i].op.basename.p->name);
     } else if (!varied && op[i].opcode==VARY) {
@@ -101,7 +101,7 @@ void first_pass() {
     
     printf("No basename found, set to [generic]\n");
   }
-  
+  printf("finished first_pass()\n");
 
 }
 
@@ -125,33 +125,45 @@ void first_pass() {
   appropirate value.
   ====================*/
 struct vary_node ** second_pass() {
-  struct vary_node* knobs[num_frames-1];//calloc please
+  //struct vary_node * knobs[num_frames];//=(struct vary_node **) malloc(sizeof(struct vary_node *));//calloc please
+  struct vary_node ** knobs=(struct vary_node **) calloc(sizeof(struct vary_node *), num_frames);
   int i=0;
   for (;i<lastop;i++) {
 
     if (op[i].opcode==VARY) {
-      
+      //printf("[second pass]: located VARY\n");
+      //printf("start_frame: %f\nend_frame: %f\n",op[i].op.vary.start_frame, op[i].op.vary.end_frame);
       int curr_f;
       for (curr_f=0;curr_f<num_frames;curr_f++) {
 	
 	if (!knobs[curr_f]) {//if empty
+	  //printf("[second_pass]: knobs[curr_f] found empty\n");
 	  if (op[i].op.vary.start_frame<=op[i].op.vary.end_frame &&
-	      op[i].op.vary.start_frame>0 &&
+	      op[i].op.vary.start_frame>=0 &&
 	      op[i].op.vary.end_frame>0 &&
 	      curr_f>=op[i].op.vary.start_frame &&
 	      curr_f<=op[i].op.vary.end_frame) {
-
+	    //printf("[second_pass]: valid condition\n");
 	    //calculate value
 	    double step=(op[i].op.vary.end_val-op[i].op.vary.start_val)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-	    double mult=(op[i].op.vary.end_frame-curr_f)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-		
+	    //printf("[second_pass]: step for calculating value [%s]: %f\n",op[i].op.vary.p->name,step);
+	    //double mult=(curr_f-op[i].op.vary.start_frame)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
+	    
+	    //printf("[second_pass]: multiplier for calculating value [%s]: %f\n",op[i].op.vary.p->name,mult);	
 	    struct vary_node* set=(struct vary_node *)malloc(sizeof(struct vary_node));
 	    strcpy(set->name,op[i].op.vary.p->name);
-	    set->value=step*mult;
+	    //set->value=step*mult*100;
+	    set->value=step*(curr_f-op[i].op.vary.start_frame);
 	    set->next=NULL;
+	    //printf("[second_pass]: created set\n");
 	    knobs[curr_f]=set;
+	    //printf("[second_pass]: set knobs[curr_f]\n");
+	    continue;
 	  }
+	
 	}
+
+	
 	struct vary_node* check=knobs[curr_f];
 	//loop through linked list for frame # curr_f
 	while (check->next) {
@@ -159,16 +171,16 @@ struct vary_node ** second_pass() {
 	  if (!strcmp(check->name, op[i].op.vary.p->name)) {
 	    //check if frame is in the range && if valid range
 	    if (op[i].op.vary.start_frame<=op[i].op.vary.end_frame &&
-		op[i].op.vary.start_frame>0 &&
-		op[i].op.vary.end_frame>0 &&
+		op[i].op.vary.start_frame>=0 &&
+		op[i].op.vary.end_frame>=0 &&
 		curr_f>=op[i].op.vary.start_frame &&
 		curr_f<=op[i].op.vary.end_frame) {
 
 	      //calculate value
 	      double step=(op[i].op.vary.end_val-op[i].op.vary.start_val)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-	      double mult=(op[i].op.vary.end_frame-curr_f)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-		
-	      check->value=step*mult;
+	      //double mult=(curr_f-op[i].op.vary.start_frame)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
+	      check->value=step*(curr_f-op[i].op.vary.start_frame);
+	      //check->value=step*mult*100;
 	      break;//out of while loop
 	    }
 
@@ -177,25 +189,42 @@ struct vary_node ** second_pass() {
 	}//end while loop through linked list
 
 	//if the knob did not already exist
+	//printf("[second_pass]: knob [%s] did not exist\n", op[i].op.vary.p->name);
 	if (op[i].op.vary.start_frame<=op[i].op.vary.end_frame &&
-	    op[i].op.vary.start_frame>0 &&
-	    op[i].op.vary.end_frame>0 &&
+	    op[i].op.vary.start_frame>=0 &&
+	    op[i].op.vary.end_frame>=0 &&
 	    curr_f>=op[i].op.vary.start_frame &&
 	    curr_f<=op[i].op.vary.end_frame) {
 
 	  //calculate value
 	  double step=(op[i].op.vary.end_val-op[i].op.vary.start_val)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-	  double mult=(op[i].op.vary.end_frame-curr_f)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
-
+	  //printf("[second_pass]: step for calculating value [%s]: %f\n",op[i].op.vary.p->name,step);
+	  //double mult=(curr_f-op[i].op.vary.start_frame)/(op[i].op.vary.end_frame-op[i].op.vary.start_frame);
+	  //printf("[second_pass]: multiplier for calculating value [%s]: %f\n",op[i].op.vary.p->name,mult);	
 	  struct vary_node* set=(struct vary_node *)malloc(sizeof(struct vary_node));
 	  strcpy(set->name,op[i].op.vary.p->name);
-	  set->value=step*mult;
+	  //set->value=step*mult*100;
+	  set->value=op[i].op.vary.start_val+step*(curr_f-op[i].op.vary.start_frame);
 	  set->next=NULL;
 	  check->next=set;
 	}
       }
     }
   }
+  printf("finished second_pass\n");
+
+  //print the whole thing
+  int r=0;
+
+  for (;r<num_frames;r++) {
+    struct vary_node * temp=knobs[r];
+    printf("frame %d\n",r);
+    while (temp) {
+      printf("knob [%s], value [%f]\n",temp->name, temp->value);
+      temp=temp->next;
+    }
+  }
+  
   return knobs;
 }
 
@@ -320,7 +349,8 @@ void my_main() {
 	set_value(lookup_symbol(temp->name),temp->value);
       temp=temp->next;
     }
-
+    printf("\n[frame %d] printing knobs\n",frame);
+    print_knobs();
     for (i=0;i<lastop;i++) {
       //printf("%d: ",i);
       switch (op[i].opcode)
@@ -422,15 +452,23 @@ void my_main() {
 	  tmp->lastcol = 0;
 	  break;
 	case MOVE:
+	  //multiply by lookup_symbol(op[i].op.move.p->name)->s.value
+	  //need a way to check if their is a knob
 	  xval = op[i].op.move.d[0];
 	  yval = op[i].op.move.d[1];
 	  zval = op[i].op.move.d[2];
+
 	  printf("Move: %6.2f %6.2f %6.2f",
 		 xval, yval, zval);
 	  if (op[i].op.move.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.move.p->name);
+	      xval*= lookup_symbol(op[i].op.move.p->name)->s.value;
+	      yval*= lookup_symbol(op[i].op.move.p->name)->s.value;
+	      zval*= lookup_symbol(op[i].op.move.p->name)->s.value;
 	    }
+	  printf("Move post-knob: %6.2f %6.2f %6.2f",
+		 xval, yval, zval);
 	  tmp = make_translate( xval, yval, zval );
 	  matrix_mult(peek(systems), tmp);
 	  copy_matrix(tmp, peek(systems));
@@ -442,10 +480,16 @@ void my_main() {
 	  zval = op[i].op.scale.d[2];
 	  printf("Scale: %6.2f %6.2f %6.2f",
 		 xval, yval, zval);
+	  
 	  if (op[i].op.scale.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.scale.p->name);
+	      xval*= lookup_symbol(op[i].op.scale.p->name)->s.value;
+	      yval*= lookup_symbol(op[i].op.scale.p->name)->s.value;
+	      zval*= lookup_symbol(op[i].op.scale.p->name)->s.value;
 	    }
+	  printf("Scale post-knob: %6.2f %6.2f %6.2f",
+		 xval, yval, zval);
 	  tmp = make_scale( xval, yval, zval );
 	  matrix_mult(peek(systems), tmp);
 	  copy_matrix(tmp, peek(systems));
@@ -454,12 +498,16 @@ void my_main() {
 	case ROTATE:
 	  xval = op[i].op.rotate.axis;
 	  theta = op[i].op.rotate.degrees;
+
 	  printf("Rotate: axis: %6.2f degrees: %6.2f",
 		 xval, theta);
 	  if (op[i].op.rotate.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.rotate.p->name);
+	      theta*= lookup_symbol(op[i].op.rotate.p->name)->s.value;
 	    }
+	  printf("Rotate post-knob: axis: %6.2f degrees: %6.2f",
+		 xval, theta);
 	  theta*= (M_PI / 180);
 	  if (op[i].op.rotate.axis == 0 )
 	    tmp = make_rotX( theta );
@@ -495,10 +543,13 @@ void my_main() {
     char fname[12+strlen(name)];//8=strlen("anim/")+3 for numbers+strlen(".png")
 
     sprintf(fname,"anim/%s%03d.png",name,frame);
+    //display(t);
     
     save_extension(t,fname);
     clear_screen(t);
     clear_zbuffer(zb);
+    systems=new_stack();
+    tmp=new_matrix(4,1000);
   }//end for loop for all frames
   make_animation(name);
 }	
