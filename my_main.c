@@ -334,8 +334,10 @@ void my_main() {
   clear_zbuffer(zb);
 
   //check if frames==1
-  if (num_frames>1) {
   first_pass();
+  printf("frames: %d\n",num_frames);
+  if (num_frames>1) {
+  
   struct vary_node** knobs=second_pass();
   int frame;
   for (frame=0;frame<num_frames;frame++) {
